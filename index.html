@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<link rel="stylesheet" href="styles.css">
+<title>Interactive Node Graph</title>
+</head>
+<body>
+
+<div id="viewport">
+    <div id="world">
+        <svg id="connections-layer"></svg>
+        <div id="nodes-layer"></div>
+        <div id="tools-layer"></div>
+    </div>
+</div>
+
+<div id="ui-controls">
+    <div class="row">
+        <button class="btn-fab" id="zoom-in" title="Zoom In">+</button>
+        <button class="btn-fab" id="zoom-out" title="Zoom Out">-</button> 
+    </div>
+    <div class="row">
+        <button class="btn-fab" id="reset-view" title="Reset View">⟲</button>
+        <button class="btn-fab primary" id="add-node" title="Add Node">+</button>
+    </div>
+</div>
+
+<div id="debug">Drag bg to pan • Scroll/Buttons to Zoom • Drag Nodes • Drag handles to connect</div>
+
+<script>
+    /** STATE & CONFIG */
+    const state = {
+        pan: { x: 0, y: 0 },
+        scale: 1,
+        snapScale: 20,
+        nodes: [],
+        connections: [], 
+        
+        // Interaction Flags
+        isPanning: false,
+        isDraggingNode: null,
+        isResizingNode: null,
+        isConnecting: false,
+        
+        // Tracking data
+        lastMouse: { x: 0, y: 0 },
+        dragOffset: { x: 0, y: 0 }, // Offset within node when dragging
+        resizeStart: { w: 0, h: 0, x: 0, y: 0 },
+        
+        // Connection Logic
+        connStartNode: null,
+        connStartPort: null,
+        tempPath: null,
+        selectedConnId: null
+    };
+
+    // DOM Elements
+    const viewport = document.getElementById('viewport');
+    const world = document.getElementById('world');
+    const nodesLayer = document.getElementById('nodes-layer');
+    const connectionsLayer = document.getElementById('connections-layer');
+    const toolsLayer = document.getElementById('tools-layer');
+
+    /** INITIALIZATION */
+    function init() {
+        const data = localStorage.getItem('node-graph-v2');
+        if (data) {
+            const parsed = JSON.parse(data);
+            state.nodes = parsed.nodes || [];
+            state.connections = parsed.connections || [];
+            state.pan = parsed.pan || { x: 0, y: 0 };
+            state.scale = parsed.scale || 1;
+            state.snapScale = parsed.snapScale || 20;
+        } else {
+            // Seeds
+            // addNodeData(100, 100, 200, 150, "Welcome", "Drag me, resize me (bottom-right), or connect me.");
+            // addNodeData(400, 250, 200, 150, "Target", "Click a line to delete it.");
+        }
+        applyTransform();
+        state.nodes.forEach(renderNode);
+        renderConnections();
+    }
+
+    function saveData() {
+        const data = {
+            nodes: state.nodes,
+            connections: state.connections,
+            pan: state.pan,
+            scale: state.scale,
+            snapScale: state.snapScale
+        };
+        localStorage.setItem('node-graph-v2', JSON.stringify(data));
+    }
+
+    /** DOM HELPERS */
+    function generateId() { return Math.random().toString(36).substr(2, 9); }
+    
+    function screenToWorld(sx, sy) {
+        return {
+            x: (sx - state.pan.x) / state.scale,
+            y: (sy - state.pan.y) / state.scale
+        };
+    }
+
+    function applyTransform() {
+        world.style.transform = `translate(${state.pan.x}px, ${state.pan.y}px) scale(${state.scale})`;
+        connectionsLayer.style.overflow = "visible";
+    }
+
+    /** NODE LOGIC */
+    function addNodeData(x, y, w, h, title, desc) {
+        const node = { id: generateId(), x, y, w, h, title, desc };
+        state.nodes.push(node);
+        renderNode(node);
+        saveData();
+    }
+
+    function renderNode(node) {
+        const el = document.createElement('div');
+        el.className = 'node';
+        el.id = node.id;
+        el.style.left = node.x + 'px';
+        el.style.top = node.y + 'px';
+        el.style.width = node.w + 'px';
+        el.style.height = node.h + 'px';
+
+        el.innerHTML = `
+            <div class="node-header">
+                <span class="drag-handle">≡</span>
+                <input class="node-title" value="${node.title}">
+                <button class="btn-delete">×</button>
+            </div>
+            <div class="node-body">
+                <textarea class="node-desc">${node.desc}</textarea>
+            </div>
+            <div class="resizer"></div>
+            <div class="port port-t" data-p="t"></div>
+            <div class="port port-r" data-p="r"></div>
+            <div class="port port-b" data-p="b"></div>
+            <div class="port port-l" data-p="l"></div>
+        `;
+
+        // Inputs
+        const titleInput = el.querySelector('.node-title');
+        const descInput = el.querySelector('.node-desc');
+        
+        // Update listeners
+        titleInput.addEventListener('input', e => {
+            state.nodes.find(n => n.id === node.id).title = e.target.value;
+            saveData();
+        });
+        descInput.addEventListener('input', e => {
+            state.nodes.find(n => n.id === node.id).desc = e.target.value;
+            saveData();
+        });
+        
+        // Stop drag propagation on inputs
+        [titleInput, descInput].forEach(i => {
+            i.addEventListener('pointerdown', e => e.stopPropagation());
+        });
+
+        // Delete Node
+        el.querySelector('.btn-delete').addEventListener('click', () => deleteNode(node.id));
+
+        // Start Resizing
+        el.querySelector('.resizer').addEventListener('pointerdown', (e) => {
+            e.stopPropagation();
+            state.isResizingNode = node;
+            state.resizeStart = { 
+                w: node.w, h: node.h, 
+                x: e.clientX, y: e.clientY 
+            };
+        });
+
+        // Start Connecting
+        el.querySelectorAll('.port').forEach(p => {
+            p.addEventListener('pointerdown', (e) => startConnection(e, node.id));
+        });
+
+        nodesLayer.appendChild(el);
+    }
+
+    function deleteNode(id) {
+        state.nodes = state.nodes.filter(n => n.id !== id);
+        state.connections = state.connections.filter(c => c.from !== id && c.to !== id);
+        document.getElementById(id).remove();
+        renderConnections();
+        saveData();
+    }
+
+    /** CONNECTION LOGIC */
+    function startConnection(e, nodeId) {
+        e.stopPropagation();
+        state.isConnecting = true;
+        state.connStartNode = state.nodes.find(n => n.id === nodeId);
+        state.connStartPort = e.target;
+
+        // Create temp path
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("class", "connection-line");
+        path.style.strokeDasharray = "5,5";
+        connectionsLayer.appendChild(path);
+        state.tempPath = path;
+    }
+
+    function updateTempConnection(e) {
+        if(!state.tempPath) return;
+        const mp = screenToWorld(e.clientX, e.clientY);
+        const start = getCenter({
+            x: state.connStartPort.offsetLeft + state.connStartNode.x, 
+            y: state.connStartPort.offsetTop + state.connStartNode.y, 
+            w: state.connStartPort.classList.contains('port-l') || state.connStartPort.classList.contains('port-r') ? 10 : 2,
+            h: state.connStartPort.classList.contains('port-t') || state.connStartPort.classList.contains('port-b') ? 10 : 2
+        });
+        const d = `M ${start.x} ${start.y} L ${mp.x} ${mp.y}`;
+        state.tempPath.setAttribute("d", d);
+    }
+
+    function endConnection(e) {
+        const targetEl = document.elementFromPoint(e.clientX, e.clientY);
+        const targetNodeEl = targetEl ? targetEl.closest('.node') : null;
+
+        if (targetNodeEl && targetNodeEl.id !== state.connStartNode.id) {
+            // Create connection
+            const newConn = {
+                id: generateId(),
+                from: state.connStartNode.id,
+                to: targetNodeEl.id
+            };
+            // Prevent duplicates
+            const exists = state.connections.find(c => 
+                (c.from === newConn.from && c.to === newConn.to) ||
+                (c.from === newConn.to && c.to === newConn.from)
+            );
+
+            if(!exists) {
+                state.connections.push(newConn);
+                saveData();
+            }
+        }
+        
+        if(state.tempPath) state.tempPath.remove();
+        state.isConnecting = false;
+        state.tempPath = null;
+        state.connStartNode = null;
+        state.connStartPort = null;
+        renderConnections();
+    }
+
+    function deleteConnection(connId) {
+        state.connections = state.connections.filter(c => c.id !== connId);
+        state.selectedConnId = null;
+        renderConnections();
+        saveData();
+    }
+
+    function selectConnection(connId) {
+        state.selectedConnId = connId;
+        renderConnections(); // Redraws to show selected state & button
+    }
+
+    /** RENDERING CONNECTIONS */
+    function renderConnections() {
+        connectionsLayer.innerHTML = '';
+        toolsLayer.innerHTML = ''; // Clear delete buttons
+
+        state.connections.forEach(conn => {
+            const n1 = state.nodes.find(n => n.id === conn.from);
+            const n2 = state.nodes.find(n => n.id === conn.to);
+            if(!n1 || !n2) return;
+
+            // Calculate points
+            const c1 = getCenter(n1);
+            const c2 = getCenter(n2);
+            
+            // Logic to calculate start/end based on relative position (snap to edges)
+            const p1 = getSnapPoint(c1, c2);
+            const p2 = getSnapPoint(c2, c1);
+            
+            // Bezier Control Points
+            const dx = Math.abs(p1.x - p2.x);
+            const cp1 = { x: (p1.x + p2.x)/2, y: p1.y }; 
+            const cp2 = { x: (p1.x + p2.x)/2, y: p2.y };
+            
+            // Use a smoother curve heuristic
+            const tension = 0.0;
+            const metaX = Math.abs(p1.x - p2.x) * tension;
+            const metaY = Math.abs(p1.y - p2.y) * tension;
+            
+            // Horizontal vs Vertical dominance
+            let cx1, cy1, cx2, cy2;
+            if(Math.abs(p1.x - p2.x) > Math.abs(p1.y - p2.y)) {
+                // Horizontalish
+                cx1 = p1.x + (p1.x < p2.x ? metaX : -metaX);
+                cy1 = p1.y;
+                cx2 = p2.x + (p2.x < p1.x ? metaX : -metaX);
+                cy2 = p2.y;
+            } else {
+                // Verticalish
+                cx1 = p1.x;
+                cy1 = p1.y + (p1.y < p2.y ? metaY : -metaY);
+                cx2 = p2.x;
+                cy2 = p2.y + (p2.y < p1.y ? metaY : -metaY);
+            }
+
+            const d = `M ${p1.x} ${p1.y} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${p2.x} ${p2.y}`;
+
+            // Create Group
+            const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            g.setAttribute("class", `connection-group ${state.selectedConnId === conn.id ? 'selected' : ''}`);
+            g.onclick = (e) => {
+                e.stopPropagation();
+                selectConnection(conn.id);
+            };
+
+            // Hitbox (thick)
+            const pathHit = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            pathHit.setAttribute("d", d);
+            pathHit.setAttribute("class", "connection-hitbox");
+
+            // Visible Line
+            const pathLine = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            pathLine.setAttribute("d", d);
+            pathLine.setAttribute("class", "connection-line");
+
+            g.appendChild(pathHit);
+            g.appendChild(pathLine);
+            connectionsLayer.appendChild(g);
+
+            // If selected, Draw Delete Button at mid point (approx Bezier t=0.5)
+            if (state.selectedConnId === conn.id) {
+                // simple midpoint approximation
+                const midX = 0.125 * p1.x + 0.375 * cx1 + 0.375 * cx2 + 0.125 * p2.x;
+                const midY = 0.125 * p1.y + 0.375 * cy1 + 0.375 * cy2 + 0.125 * p2.y;
+                
+                const btn = document.createElement('div');
+                btn.className = 'conn-delete-btn';
+                btn.innerHTML = '×';
+                btn.style.left = midX + 'px';
+                btn.style.top = midY + 'px';
+                btn.style.display = 'flex';
+                btn.title = 'Remove Connection';
+                
+                // Prevent bubbling to viewport (which deselects)
+                btn.onpointerdown = (e) => e.stopPropagation(); 
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteConnection(conn.id);
+                };
+                
+                toolsLayer.appendChild(btn);
+            }
+        });
+    }
+
+    function getCenter(n) { return { x: n.x + n.w/2, y: n.y + n.h/2, w: n.w, h: n.h }; }
+    
+    function getSnapPoint(source, target) {
+        // Find intersection of line (source center -> target center) with source box
+        const dx = target.x - source.x;
+        const dy = target.y - source.y;
+        
+        // simple 4-quadrant snap
+        if(Math.abs(dx) / (source.w/2) > Math.abs(dy) / (source.h/2)) {
+            // Left or Right
+            return { x: source.x + (dx > 0 ? source.w/2 : -source.w/2), y: source.y };
+        } else {
+            // Top or Bottom
+            return { x: source.x, y: source.y + (dy > 0 ? source.h/2 : -source.h/2) };
+        }
+    }
+
+    function getPortPoint(n) {
+        // For drag start, just use center, it snaps later
+        return { x: n.x + n.w/2, y: n.y + n.h/2 };
+    }
+
+
+    /** GLOBAL INPUT HANDLERS */
+    
+    viewport.addEventListener('pointerdown', e => {
+        // 1. Check Resizing
+        if(state.isResizingNode) return;
+
+        // 2. Check Node Header Drag
+        const header = e.target.closest('.node-header');
+        if(header) {
+            const nodeEl = header.closest('.node');
+            const node = state.nodes.find(n => n.id === nodeEl.id);
+            nodeEl.classList.add('is-dragging');
+            state.isDraggingNode = node;
+            const wp = screenToWorld(e.clientX, e.clientY);
+            state.dragOffset = { x: wp.x - node.x, y: wp.y - node.y };
+            // Deselect connection
+            if(state.selectedConnId) { state.selectedConnId = null; renderConnections(); }
+            return;
+        }
+
+        // 3. Pan Background
+        if(e.target === viewport || e.target === nodesLayer || e.target === world || e.target.id === 'connections-layer') {
+            state.isPanning = true;
+            state.lastMouse = { x: e.clientX, y: e.clientY };
+            // Deselect connection
+            if(state.selectedConnId) { state.selectedConnId = null; renderConnections(); }
+        }
+    });
+
+    window.addEventListener('pointermove', e => {
+        const mx = e.clientX;
+        const my = e.clientY;
+
+        if (state.isResizingNode) {
+            const node = state.isResizingNode;
+            const dx = (mx - state.resizeStart.x) / state.scale;
+            const dy = (my - state.resizeStart.y) / state.scale;
+            
+            node.w = Math.round((Math.max(100, state.resizeStart.w + dx))/state.snapScale)*state.snapScale;
+            node.h = Math.round((Math.max(80, state.resizeStart.h + dy))/state.snapScale)*state.snapScale;
+
+            const el = document.getElementById(node.id);
+            el.style.width = node.w + 'px';
+            el.style.height = node.h + 'px';
+            
+            renderConnections(); // Update lines in real time
+        }
+        else if (state.isDraggingNode) {
+            const wp = screenToWorld(mx, my);
+            state.isDraggingNode.x = wp.x - state.dragOffset.x;
+            state.isDraggingNode.y = wp.y - state.dragOffset.y;
+            
+            // Snap to 10px
+            state.isDraggingNode.x = Math.round(state.isDraggingNode.x/state.snapScale)*state.snapScale;
+            state.isDraggingNode.y = Math.round(state.isDraggingNode.y/state.snapScale)*state.snapScale;
+
+            const el = document.getElementById(state.isDraggingNode.id);
+            el.style.left = state.isDraggingNode.x + 'px';
+            el.style.top = state.isDraggingNode.y + 'px';
+            
+            renderConnections();
+        } 
+        else if (state.isPanning) {
+            const dx = mx - state.lastMouse.x;
+            const dy = my - state.lastMouse.y;
+            state.pan.x += dx;
+            state.pan.y += dy;
+            state.lastMouse = { x: mx, y: my };
+            applyTransform();
+        }
+        else if (state.isConnecting) {
+            updateTempConnection(e);
+        }
+    });
+
+    window.addEventListener('pointerup', e => {
+        if (state.isDraggingNode || state.isResizingNode) {
+            const el = document.getElementById(state.isDraggingNode ? state.isDraggingNode.id : state.isResizingNode.id);
+            el.classList.remove('is-dragging');
+            saveData();
+        }
+        if (state.isConnecting) {
+            endConnection(e);
+        }
+        state.isDraggingNode = null;
+        state.isResizingNode = null;
+        state.isPanning = false;
+    });
+
+    /** ZOOMING */
+    function zoom(delta, centerX, centerY) {
+        const newScale = Math.min(Math.max(0.1, state.scale + delta), 5);
+        if(newScale === state.scale) return;
+
+        // Zoom towards center
+        const worldX = (centerX - state.pan.x) / state.scale;
+        const worldY = (centerY - state.pan.y) / state.scale;
+
+        state.scale = newScale;
+        state.pan.x = centerX - worldX * state.scale;
+        state.pan.y = centerY - worldY * state.scale;
+        
+        applyTransform();
+        saveData();
+    }
+
+    viewport.addEventListener('wheel', e => {
+        e.preventDefault();
+        const delta = -e.deltaY * 0.001;
+        zoom(delta, e.clientX, e.clientY);
+    }, { passive: false });
+
+    /** UI CONTROLS */
+    document.getElementById('add-node').onclick = () => {
+        const wp = screenToWorld(viewport.clientWidth/2, viewport.clientHeight/2);
+        addNodeData(wp.x - 75, wp.y - 50, 150, 100, "New Node", "");
+    };
+
+    document.getElementById('reset-view').onclick = () => {
+        state.pan = { x: 0, y: 0 };
+        state.scale = 1;
+        applyTransform();
+        saveData();
+    };
+
+    document.getElementById('zoom-in').onclick = () => {
+        zoom(0.2, viewport.clientWidth/2, viewport.clientHeight/2);
+    };
+
+    document.getElementById('zoom-out').onclick = () => {
+        zoom(-0.2, viewport.clientWidth/2, viewport.clientHeight/2);
+    };
+
+    // Keyboard delete for selected connection
+    window.addEventListener('keydown', (e) => {
+        if((e.key === 'Delete' || e.key === 'Backspace') && state.selectedConnId) {
+            deleteConnection(state.selectedConnId);
+        }
+    });
+
+    // Run
+    init();
+
+</script>
+</body>
+</html>
