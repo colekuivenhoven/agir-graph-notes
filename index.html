@@ -281,23 +281,25 @@
             
             // Bezier Control Points
             const dx = Math.abs(p1.x - p2.x);
+            const dy = Math.abs(p1.y - p2.y);
             const cp1 = { x: (p1.x + p2.x)/2, y: p1.y }; 
             const cp2 = { x: (p1.x + p2.x)/2, y: p2.y };
             
             // Use a smoother curve heuristic
-            const tension = 0.0;
+            const tension = 0.25;
             const metaX = Math.abs(p1.x - p2.x) * tension;
             const metaY = Math.abs(p1.y - p2.y) * tension;
             
             // Horizontal vs Vertical dominance
             let cx1, cy1, cx2, cy2;
-            if(Math.abs(p1.x - p2.x) > Math.abs(p1.y - p2.y)) {
+            if(dx >= dy) {
                 // Horizontalish
                 cx1 = p1.x + (p1.x < p2.x ? metaX : -metaX);
                 cy1 = p1.y;
                 cx2 = p2.x + (p2.x < p1.x ? metaX : -metaX);
                 cy2 = p2.y;
-            } else {
+            }
+            else {
                 // Verticalish
                 cx1 = p1.x;
                 cy1 = p1.y + (p1.y < p2.y ? metaY : -metaY);
@@ -363,13 +365,45 @@
         const dy = target.y - source.y;
         
         // simple 4-quadrant snap
-        if(Math.abs(dx) / (source.w/2) > Math.abs(dy) / (source.h/2)) {
-            // Left or Right
-            return { x: source.x + (dx > 0 ? source.w/2 : -source.w/2), y: source.y };
-        } else {
-            // Top or Bottom
-            return { x: source.x, y: source.y + (dy > 0 ? source.h/2 : -source.h/2) };
-        }
+        // if(Math.abs(dx) / (source.w/2) > Math.abs(dy) / (source.h/2)) {
+        //     // Left or Right
+        //     return { x: source.x + (dx > 0 ? source.w/2 : -source.w/2), y: source.y };
+        // } else {
+        //     // Top or Bottom
+        //     return { x: source.x, y: source.y + (dy > 0 ? source.h/2 : -source.h/2) };
+        // }
+
+        // Even more precise by finding the shortest line to each rect edge
+        const slopes = [
+            { x: source.x + source.w / 2, y: source.y + (dy / dx) * (source.w / 2) }, // Right
+            { x: source.x - source.w / 2, y: source.y - (dy / dx) * (source.w / 2) }, // Left
+            { x: source.x + (dx / dy) * (source.h / 2), y: source.y + source.h / 2 }, // Bottom
+            { x: source.x - (dx / dy) * (source.h / 2), y: source.y - source.h / 2 }  // Top
+        ];
+        // Filter valid points (within box edges)
+        const validPoints = slopes.filter(p => {
+            return (p.x >= source.x - source.w / 2 && p.x <= source.x + source.w / 2 &&
+                    p.y >= source.y - source.h / 2 && p.y <= source.y + source.h / 2);
+        });
+        // Find closest valid point to target
+        let closestPoint = validPoints[0];
+        let minDist = Infinity;
+        validPoints.forEach(p => {
+            const dist = Math.hypot(p.x - target.x, p.y - target.y);
+            if (dist < minDist) {
+                minDist = dist;
+                closestPoint = p;
+            }
+        });
+
+        // offset to edge
+        const offset = 5;
+        if (closestPoint.x === source.x + source.w / 2) closestPoint.x += offset; // Right edge
+        else if (closestPoint.x === source.x - source.w / 2) closestPoint.x -= offset; // Left edge
+        else if (closestPoint.y === source.y + source.h / 2) closestPoint.y += offset; // Bottom edge
+        else if (closestPoint.y === source.y - source.h / 2) closestPoint.y -= offset; // Top edge
+
+        return closestPoint;
     }
 
     function getPortPoint(n) {

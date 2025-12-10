@@ -173,7 +173,7 @@ path.connection-hitbox {
     padding: 8px;
     background: var(--node-header-bg);
     border-bottom: 1px solid var(--grid-color);
-    border-radius: var(--node-border-radius) var(--node-border-radius) 0 0;
+    border-radius: calc(var(--node-border-radius) - 1px) calc(var(--node-border-radius) - 1px) 0 0;
     cursor: grab;
     display: flex;
     justify-content: flex-start;
@@ -203,9 +203,9 @@ path.connection-hitbox {
     font-size: 12px;
     line-height: 2;
     color: var(--text-main);
-    background-color: rgba(255, 255, 255, 0.8);
+    background-color: rgba(255, 255, 255, 0.4);
     outline: none;
-    border: 1px solid var(--grid-color);
+    border: 1px solid rgba(0, 0, 0, 0.0);
     padding: 0px 6px;
     border-radius: 4px;
     flex-grow: 1;
@@ -266,7 +266,7 @@ path.connection-hitbox {
     cursor: nwse-resize;
     background: linear-gradient(135deg, transparent 50%, var(--text-sub) 50%);
     opacity: 0.65;
-    border-radius: 0 0 var(--node-border-radius) 0;
+    border-radius: 0 0 calc(var(--node-border-radius) - 1px) 0;
     transform: scale(1);
     transform-origin: bottom right;
     transition: all 0.1s ease-in-out;
