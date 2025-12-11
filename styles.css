@@ -303,6 +303,62 @@ path.connection-hitbox {
 .port-t, .port-b {transform-origin: center; &:hover { transform: translateX(-50%) scale(1.25); }}
 .port-l, .port-r { transform-origin: center; &:hover { transform: translateY(-50%) scale(1.25); }}
 
+/* Updated resize handles */
+.resize {
+    position: absolute;
+    width: 25px; height: 25px;
+    /* background: var(--text-sub); */
+    border-radius: 4px;
+    cursor: pointer;
+    opacity: 0.0;
+    transform: scale(1);
+    transform-origin: center;
+    transition: all 0.1s ease-in-out;
+    z-index: 5;
+    display: flex; align-items: center; justify-content: center;
+
+    &.resize-t, &.resize-b {
+        &::after {
+            content: "";
+            border-radius: 5px;
+            width: 100%; height: 4px;
+            background: var(--text-sub);
+            opacity: 0;
+            transform: scale(0.25);
+            /* bounce effect */
+            transition: all 0.1s ease-in-out;
+        }
+    }
+    &.resize-l, &.resize-r {
+        &::after {
+            content: "";
+            border-radius: 5px;
+            width: 4px; height: 100%;
+            background: var(--text-sub);
+            opacity: 0;
+            transform: scale(0.25);
+            transition: all 0.1s ease-in-out;
+        }
+    }
+
+    &:hover { 
+        &::after {
+            background: var(--accent);
+            opacity: 1;
+            opacity: 0.5;
+            transform: scale(1);
+        }
+    }
+
+}
+.node:hover .resize {
+    opacity: 1;
+}
+.resize-t { top: -25px; left: 50%; transform: translateX(-50%); width: calc(100% - 30px); }
+.resize-b { bottom: -25px; left: 50%; transform: translateX(-50%); width: calc(100% - 30px); }
+.resize-l { left: -25px; top: 50%; transform: translateY(-50%); height: calc(100% - 30px); }
+.resize-r { right: -25px; top: 50%; transform: translateY(-50%); height: calc(100% - 30px); }
+
 /* --- UI Controls --- */
 #ui-controls {
     position: fixed;

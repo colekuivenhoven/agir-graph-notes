@@ -140,6 +140,11 @@
             <div class="port port-r" data-p="r"></div>
             <div class="port port-b" data-p="b"></div>
             <div class="port port-l" data-p="l"></div>
+
+            <div class="resize resize-t" data-r="t"></div>
+            <div class="resize resize-r" data-r="r"></div>
+            <div class="resize resize-b" data-r="b"></div>
+            <div class="resize resize-l" data-r="l"></div>
         `;
 
         // Inputs
@@ -172,6 +177,17 @@
                 w: node.w, h: node.h, 
                 x: e.clientX, y: e.clientY 
             };
+        });
+
+        el.querySelectorAll('.resize').forEach(r => {
+            r.addEventListener('pointerdown', (e) => {
+                e.stopPropagation();
+                state.isResizingNode = node;
+                state.resizeStart = { 
+                    w: node.w, h: node.h, 
+                    x: e.clientX, y: e.clientY 
+                };
+            });
         });
 
         // Start Connecting
@@ -445,16 +461,39 @@
         const my = e.clientY;
 
         if (state.isResizingNode) {
+            // const node = state.isResizingNode;
+            // const dx = (mx - state.resizeStart.x) / state.scale;
+            // const dy = (my - state.resizeStart.y) / state.scale;
+            
+            // node.w = Math.round((Math.max(100, state.resizeStart.w + dx))/state.snapScale)*state.snapScale;
+            // node.h = Math.round((Math.max(80, state.resizeStart.h + dy))/state.snapScale)*state.snapScale;
+
+            // const el = document.getElementById(node.id);
+            // el.style.width = node.w + 'px';
+            // el.style.height = node.h + 'px';
+
+            // update for the use of resize-t/r/b/l handles
             const node = state.isResizingNode;
             const dx = (mx - state.resizeStart.x) / state.scale;
             const dy = (my - state.resizeStart.y) / state.scale;
+            const handle = e.target.getAttribute('data-r');
+            if(handle === 'r') {
+                node.w = Math.round((Math.max(100, state.resizeStart.w + dx))/state.snapScale)*state.snapScale;
+            } else if(handle === 'b') {
+                node.h = Math.round((Math.max(80, state.resizeStart.h + dy))/state.snapScale)*state.snapScale;
+            } else if(handle === 'l') {
+                node.w = Math.round((Math.max(100, state.resizeStart.w - dx))/state.snapScale)*state.snapScale;
+                node.x = Math.round((node.x + dx)/state.snapScale)*state.snapScale;
+            } else if(handle === 't') {
+                node.h = Math.round((Math.max(80, state.resizeStart.h - dy))/state.snapScale)*state.snapScale;
+                node.y = Math.round((node.y + dy)/state.snapScale)*state.snapScale;
+            }
             
-            node.w = Math.round((Math.max(100, state.resizeStart.w + dx))/state.snapScale)*state.snapScale;
-            node.h = Math.round((Math.max(80, state.resizeStart.h + dy))/state.snapScale)*state.snapScale;
-
             const el = document.getElementById(node.id);
             el.style.width = node.w + 'px';
             el.style.height = node.h + 'px';
+            el.style.left = node.x + 'px';
+            el.style.top = node.y + 'px';
             
             renderConnections(); // Update lines in real time
         }
