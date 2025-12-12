@@ -170,7 +170,10 @@ path.connection-hitbox {
 }
 
 .node-header {
-    padding: 8px;
+    padding-left: 8px;
+    padding-right: 8px;
+    padding-top: 8px;
+    padding-bottom: 8px;
     background: var(--node-header-bg);
     border-bottom: 1px solid var(--grid-color);
     border-radius: calc(var(--node-border-radius) - 1px) calc(var(--node-border-radius) - 1px) 0 0;
@@ -183,16 +186,6 @@ path.connection-hitbox {
 }
 .node-header:active { 
     cursor: grabbing;
-}
-
-.drag-handle {
-    display: flex;
-    align-items: center;
-    padding: 0 2px;
-    font-size: 16px;
-    color: var(--text-sub);
-    cursor: grab;
-    user-select: none;
 }
 
 .node-title {
@@ -211,10 +204,10 @@ path.connection-hitbox {
     flex-grow: 1;
     width: 80%;
 }
-.node-title:focus { background: white; border-color: var(--accent); }
+.node-title:focus { background: white; border-color: rgba(0, 0, 0, 0.35); }
 
 .btn-delete {
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
     height: 1.25rem;
@@ -258,25 +251,6 @@ path.connection-hitbox {
     outline: none;
 }
 
-/* Resizer Handle */
-.resizer {
-    position: absolute;
-    bottom: 0; right: 0;
-    width: 12px; height: 12px;
-    cursor: nwse-resize;
-    background: linear-gradient(135deg, transparent 50%, var(--text-sub) 50%);
-    opacity: 0.65;
-    border-radius: 0 0 calc(var(--node-border-radius) - 1px) 0;
-    transform: scale(1);
-    transform-origin: bottom right;
-    transition: all 0.1s ease-in-out;
-}
-.resizer:hover { 
-    opacity: 1; 
-    background: linear-gradient(135deg, transparent 50%, var(--accent) 50%);
-    transform: scale(1.25);
-}
-
 /* Connection Ports */
 .port {
     position: absolute;
@@ -296,10 +270,10 @@ path.connection-hitbox {
     }
 }
 .node:hover .port { opacity: 1; }
-.port-t { top: -5px; left: 50%; transform: translateX(-50%); }
-.port-b { bottom: -5px; left: 50%; transform: translateX(-50%); }
-.port-l { left: -5px; top: 50%; transform: translateY(-50%); }
-.port-r { right: -5px; top: 50%; transform: translateY(-50%); }
+.port-t { top: -35px; left: 50%; transform: translateX(-50%); }
+.port-b { bottom: -35px; left: 50%; transform: translateX(-50%); }
+.port-l { left: -35px; top: 50%; transform: translateY(-50%); }
+.port-r { right: -35px; top: 50%; transform: translateY(-50%); }
 .port-t, .port-b {transform-origin: center; &:hover { transform: translateX(-50%) scale(1.25); }}
 .port-l, .port-r { transform-origin: center; &:hover { transform: translateY(-50%) scale(1.25); }}
 
@@ -307,9 +281,7 @@ path.connection-hitbox {
 .resize {
     position: absolute;
     width: 25px; height: 25px;
-    /* background: var(--text-sub); */
-    border-radius: 4px;
-    cursor: pointer;
+    background: rgba(0,0,0,0.0);
     opacity: 0.0;
     transform: scale(1);
     transform-origin: center;
@@ -318,34 +290,53 @@ path.connection-hitbox {
     display: flex; align-items: center; justify-content: center;
 
     &.resize-t, &.resize-b {
+        cursor: ns-resize;
+
         &::after {
             content: "";
-            border-radius: 5px;
-            width: 100%; height: 4px;
+            pointer-events: none;
+            border-radius: 2px;
+            width: 100%; height: 5px;
             background: var(--text-sub);
             opacity: 0;
             transform: scale(0.25);
-            /* bounce effect */
-            transition: all 0.1s ease-in-out;
+            /* transition: all 0.1s ease-in-out; */
         }
     }
     &.resize-l, &.resize-r {
+        cursor: ew-resize;
+        
         &::after {
             content: "";
-            border-radius: 5px;
-            width: 4px; height: 100%;
+            pointer-events: none;
+            border-radius: 2px;
+            width: 5px; height: 100%;
             background: var(--text-sub);
             opacity: 0;
             transform: scale(0.25);
-            transition: all 0.1s ease-in-out;
+            /* transition: all 0.1s ease-in-out; */
         }
     }
 
+    &.resize-rb, &.resize-lt, &.resize-lb, &.resize-rt {
+        &::after {
+            content: "";
+            pointer-events: none;
+            width: 8px; height: 8px;
+            background: var(--text-sub);
+            opacity: 0;
+            transform: scale(0.25);
+            border-radius: 2px 2px 2px 2px;
+            /* transition: all 0.1s ease-in-out; */
+        }
+    }
+    &.resize-rt, &.resize-lb {cursor: nesw-resize;}
+    &.resize-lt, &.resize-rb {cursor: nwse-resize;}
+
     &:hover { 
         &::after {
-            background: var(--accent);
-            opacity: 1;
-            opacity: 0.5;
+            background: var(--accent) !important;
+            opacity: 0.5 !important;
             transform: scale(1);
         }
     }
@@ -353,11 +344,20 @@ path.connection-hitbox {
 }
 .node:hover .resize {
     opacity: 1;
+
+    &::after {
+        opacity: 0.125;
+        transform: scale(1);
+    }
 }
-.resize-t { top: -25px; left: 50%; transform: translateX(-50%); width: calc(100% - 30px); }
-.resize-b { bottom: -25px; left: 50%; transform: translateX(-50%); width: calc(100% - 30px); }
-.resize-l { left: -25px; top: 50%; transform: translateY(-50%); height: calc(100% - 30px); }
-.resize-r { right: -25px; top: 50%; transform: translateY(-50%); height: calc(100% - 30px); }
+.resize-t { top: -25px; left: 50%; transform: translateX(-50%); width: 100%; }
+.resize-b { bottom: -25px; left: 50%; transform: translateX(-50%); width: 100%; }
+.resize-l { left: -25px; top: 50%; transform: translateY(-50%); height: 100%; }
+.resize-r { right: -25px; top: 50%; transform: translateY(-50%); height: 100%; }
+.resize-rt { top: -25px; right: -25px; }
+.resize-rb { bottom: -25px; right: -25px; }
+.resize-lt { top: -25px; left: -25px; }
+.resize-lb { bottom: -25px; left: -25px; }
 
 /* --- UI Controls --- */
 #ui-controls {
@@ -386,4 +386,4 @@ path.connection-hitbox {
 .btn-fab:active { transform: scale(0.95); }
 .btn-fab.primary { background: var(--accent); color: white; border: none; }
 
-#debug { position: fixed; top: 10px; left: 10px; font-size: 12px; color: #94a3b8; pointer-events: none; }
+#debug { position: fixed; top: 10px; left: 10px; font-size: 12px; color: #94a3b8; pointer-events: none; display: flex; flex-direction: column; gap: 4px; z-index: 1000; }

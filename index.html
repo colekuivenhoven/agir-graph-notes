@@ -27,7 +27,12 @@
     </div>
 </div>
 
-<div id="debug">Drag bg to pan • Scroll/Buttons to Zoom • Drag Nodes • Drag handles to connect</div>
+<div id="debug">
+    <span>Drag bg to pan • Scroll/Buttons to Zoom • Drag Nodes • Drag handles to connect</span>
+
+    <!-- States -->
+    <pre id="state-output"></pre>
+</div>
 
 <script>
     /** STATE & CONFIG */
@@ -83,6 +88,14 @@
         renderConnections();
     }
 
+    const update_debug = () => {
+        document.getElementById('state-output').textContent = JSON.stringify({
+            ...state, 
+            nodes: `[${state.nodes.length} nodes]`,
+            connections: `[${state.connections.length} connections]`
+        }, null, 2);
+    };
+
     function saveData() {
         const data = {
             nodes: state.nodes,
@@ -128,14 +141,12 @@
 
         el.innerHTML = `
             <div class="node-header">
-                <span class="drag-handle">≡</span>
                 <input class="node-title" value="${node.title}">
                 <button class="btn-delete">×</button>
             </div>
             <div class="node-body">
                 <textarea class="node-desc">${node.desc}</textarea>
             </div>
-            <div class="resizer"></div>
             <div class="port port-t" data-p="t"></div>
             <div class="port port-r" data-p="r"></div>
             <div class="port port-b" data-p="b"></div>
@@ -145,6 +156,10 @@
             <div class="resize resize-r" data-r="r"></div>
             <div class="resize resize-b" data-r="b"></div>
             <div class="resize resize-l" data-r="l"></div>
+            <div class="resize resize-rt" data-r="rt"></div>
+            <div class="resize resize-rb" data-r="rb"></div>
+            <div class="resize resize-lt" data-r="lt"></div>
+            <div class="resize resize-lb" data-r="lb"></div>
         `;
 
         // Inputs
@@ -162,30 +177,22 @@
         });
         
         // Stop drag propagation on inputs
-        [titleInput, descInput].forEach(i => {
-            i.addEventListener('pointerdown', e => e.stopPropagation());
-        });
+        // [titleInput, descInput].forEach(i => {
+        //     i.addEventListener('pointerdown', e => e.stopPropagation());
+        // });
 
         // Delete Node
         el.querySelector('.btn-delete').addEventListener('click', () => deleteNode(node.id));
 
         // Start Resizing
-        el.querySelector('.resizer').addEventListener('pointerdown', (e) => {
-            e.stopPropagation();
-            state.isResizingNode = node;
-            state.resizeStart = { 
-                w: node.w, h: node.h, 
-                x: e.clientX, y: e.clientY 
-            };
-        });
-
         el.querySelectorAll('.resize').forEach(r => {
             r.addEventListener('pointerdown', (e) => {
                 e.stopPropagation();
                 state.isResizingNode = node;
                 state.resizeStart = { 
                     w: node.w, h: node.h, 
-                    x: e.clientX, y: e.clientY 
+                    x: e.clientX, y: e.clientY,
+                    handle: r.dataset.r
                 };
             });
         });
@@ -434,16 +441,26 @@
         if(state.isResizingNode) return;
 
         // 2. Check Node Header Drag
-        const header = e.target.closest('.node-header');
-        if(header) {
-            const nodeEl = header.closest('.node');
+        // const header = e.target.closest('.node-header');
+        // if(header) {
+        //     const nodeEl = header.closest('.node');
+        //     const node = state.nodes.find(n => n.id === nodeEl.id);
+        //     nodeEl.classList.add('is-dragging');
+        //     state.isDraggingNode = node;
+        //     const wp = screenToWorld(e.clientX, e.clientY);
+        //     state.dragOffset = { x: wp.x - node.x, y: wp.y - node.y };
+        //     // Deselect connection
+        //     if(state.selectedConnId) { state.selectedConnId = null; renderConnections(); }
+        //     return;
+        // }
+        const nodeEl = e.target.closest('.node');
+        if(nodeEl) {
             const node = state.nodes.find(n => n.id === nodeEl.id);
-            nodeEl.classList.add('is-dragging');
+            // nodeEl.classList.add('is-dragging');
             state.isDraggingNode = node;
             const wp = screenToWorld(e.clientX, e.clientY);
             state.dragOffset = { x: wp.x - node.x, y: wp.y - node.y };
-            // Deselect connection
-            if(state.selectedConnId) { state.selectedConnId = null; renderConnections(); }
+            if(state.selectedConnId) { state.selectedConnId = null; renderConnections(); } // Deselect connection
             return;
         }
 
@@ -461,34 +478,58 @@
         const my = e.clientY;
 
         if (state.isResizingNode) {
-            // const node = state.isResizingNode;
-            // const dx = (mx - state.resizeStart.x) / state.scale;
-            // const dy = (my - state.resizeStart.y) / state.scale;
-            
-            // node.w = Math.round((Math.max(100, state.resizeStart.w + dx))/state.snapScale)*state.snapScale;
-            // node.h = Math.round((Math.max(80, state.resizeStart.h + dy))/state.snapScale)*state.snapScale;
-
-            // const el = document.getElementById(node.id);
-            // el.style.width = node.w + 'px';
-            // el.style.height = node.h + 'px';
-
-            // update for the use of resize-t/r/b/l handles
             const node = state.isResizingNode;
             const dx = (mx - state.resizeStart.x) / state.scale;
             const dy = (my - state.resizeStart.y) / state.scale;
-            const handle = e.target.getAttribute('data-r');
-            if(handle === 'r') {
+
+            const handle = state.resizeStart.handle;
+            if (handle === 'r') {
                 node.w = Math.round((Math.max(100, state.resizeStart.w + dx))/state.snapScale)*state.snapScale;
-            } else if(handle === 'b') {
+            } 
+            else if (handle === 'b') {
                 node.h = Math.round((Math.max(80, state.resizeStart.h + dy))/state.snapScale)*state.snapScale;
-            } else if(handle === 'l') {
-                node.w = Math.round((Math.max(100, state.resizeStart.w - dx))/state.snapScale)*state.snapScale;
-                node.x = Math.round((node.x + dx)/state.snapScale)*state.snapScale;
-            } else if(handle === 't') {
-                node.h = Math.round((Math.max(80, state.resizeStart.h - dy))/state.snapScale)*state.snapScale;
-                node.y = Math.round((node.y + dy)/state.snapScale)*state.snapScale;
+            } 
+            else if (handle === 'l') {
+                const newW = Math.round((Math.max(100, state.resizeStart.w - dx))/state.snapScale)*state.snapScale;
+                const deltaW = newW - node.w;
+                node.w = newW;
+                node.x -= deltaW;
+            } 
+            else if (handle === 't') {
+                const newH = Math.round((Math.max(80, state.resizeStart.h - dy))/state.snapScale)*state.snapScale;
+                const deltaH = newH - node.h;
+                node.h = newH;
+                node.y -= deltaH;
             }
-            
+            else if (handle === 'rt') {
+                node.w = Math.round((Math.max(100, state.resizeStart.w + dx))/state.snapScale)*state.snapScale;
+                const newH = Math.round((Math.max(80, state.resizeStart.h - dy))/state.snapScale)*state.snapScale;
+                const deltaH = newH - node.h;
+                node.h = newH;
+                node.y -= deltaH;
+            } 
+            else if (handle === 'lt') {
+                const newW = Math.round((Math.max(100, state.resizeStart.w - dx))/state.snapScale)*state.snapScale;
+                const deltaW = newW - node.w;
+                node.w = newW;
+                node.x -= deltaW;
+                const newH = Math.round((Math.max(80, state.resizeStart.h - dy))/state.snapScale)*state.snapScale;
+                const deltaH = newH - node.h;
+                node.h = newH;
+                node.y -= deltaH;
+            }
+            else if (handle === 'rb') {
+                node.w = Math.round((Math.max(100, state.resizeStart.w + dx))/state.snapScale)*state.snapScale;
+                node.h = Math.round((Math.max(80, state.resizeStart.h + dy))/state.snapScale)*state.snapScale;
+            } 
+            else if (handle === 'lb') {
+                const newW = Math.round((Math.max(100, state.resizeStart.w - dx))/state.snapScale)*state.snapScale;
+                const deltaW = newW - node.w;
+                node.w = newW;
+                node.x -= deltaW;
+                node.h = Math.round((Math.max(80, state.resizeStart.h + dy))/state.snapScale)*state.snapScale;
+            }
+
             const el = document.getElementById(node.id);
             el.style.width = node.w + 'px';
             el.style.height = node.h + 'px';
@@ -498,6 +539,8 @@
             renderConnections(); // Update lines in real time
         }
         else if (state.isDraggingNode) {
+            const nodeEl = document.getElementById(state.isDraggingNode.id);
+            nodeEl.classList.add('is-dragging');
             const wp = screenToWorld(mx, my);
             state.isDraggingNode.x = wp.x - state.dragOffset.x;
             state.isDraggingNode.y = wp.y - state.dragOffset.y;
@@ -523,6 +566,8 @@
         else if (state.isConnecting) {
             updateTempConnection(e);
         }
+
+        update_debug();
     });
 
     window.addEventListener('pointerup', e => {
