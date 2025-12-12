@@ -146,7 +146,7 @@ path.connection-hitbox {
     flex-direction: column;
     z-index: 2;
     user-select: none;
-    min-width: 150px;
+    min-width: 100px;
     min-height: 100px;
     opacity: 1;
     outline: 2px solid rgba(0,0,0,0.0);
@@ -270,10 +270,10 @@ path.connection-hitbox {
     }
 }
 .node:hover .port { opacity: 1; }
-.port-t { top: -35px; left: 50%; transform: translateX(-50%); }
-.port-b { bottom: -35px; left: 50%; transform: translateX(-50%); }
-.port-l { left: -35px; top: 50%; transform: translateY(-50%); }
-.port-r { right: -35px; top: 50%; transform: translateY(-50%); }
+.port-t { top: -5px; left: 50%; transform: translateX(-50%); }
+.port-b { bottom: -5px; left: 50%; transform: translateX(-50%); }
+.port-l { left: -5px; top: 50%; transform: translateY(-50%); }
+.port-r { right: -5px; top: 50%; transform: translateY(-50%); }
 .port-t, .port-b {transform-origin: center; &:hover { transform: translateX(-50%) scale(1.25); }}
 .port-l, .port-r { transform-origin: center; &:hover { transform: translateY(-50%) scale(1.25); }}
 
@@ -289,7 +289,7 @@ path.connection-hitbox {
     z-index: 5;
     display: flex; align-items: center; justify-content: center;
 
-    &.resize-t, &.resize-b {
+    /* &.resize-t, &.resize-b {
         cursor: ns-resize;
 
         &::after {
@@ -300,7 +300,6 @@ path.connection-hitbox {
             background: var(--text-sub);
             opacity: 0;
             transform: scale(0.25);
-            /* transition: all 0.1s ease-in-out; */
         }
     }
     &.resize-l, &.resize-r {
@@ -314,20 +313,51 @@ path.connection-hitbox {
             background: var(--text-sub);
             opacity: 0;
             transform: scale(0.25);
-            /* transition: all 0.1s ease-in-out; */
         }
-    }
+    } */
 
     &.resize-rb, &.resize-lt, &.resize-lb, &.resize-rt {
         &::after {
             content: "";
             pointer-events: none;
-            width: 8px; height: 8px;
-            background: var(--text-sub);
+            width: 15px; height: 15px;
+            background: transparent;
             opacity: 0;
-            transform: scale(0.25);
-            border-radius: 2px 2px 2px 2px;
-            /* transition: all 0.1s ease-in-out; */
+            transform: scale(0.5);
+            transition: all 0.1s ease-in-out;
+        }
+
+        &.resize-lt {
+            &::after {
+                transform-origin: bottom right;
+                border-top-left-radius: 10px;
+                border-left: 4px solid var(--node-border);
+                border-top: 4px solid var(--node-border);
+            }
+        }
+        &.resize-rb {
+            &::after {
+                transform-origin: top left;
+                border-bottom-right-radius: 10px;
+                border-right: 4px solid var(--node-border);
+                border-bottom: 4px solid var(--node-border);
+            }
+        }
+        &.resize-rt {
+            &::after {
+                transform-origin: bottom left;
+                border-top-right-radius: 10px;
+                border-right: 4px solid var(--node-border);
+                border-top: 4px solid var(--node-border);
+            }
+        }
+        &.resize-lb {
+            &::after {
+                transform-origin: top right;
+                border-bottom-left-radius: 10px;
+                border-left: 4px solid var(--node-border);
+                border-bottom: 4px solid var(--node-border);
+            }
         }
     }
     &.resize-rt, &.resize-lb {cursor: nesw-resize;}
@@ -335,9 +365,9 @@ path.connection-hitbox {
 
     &:hover { 
         &::after {
-            background: var(--accent) !important;
+            border-color: var(--accent) !important;
             opacity: 0.5 !important;
-            transform: scale(1);
+            transform: scale(1.25);
         }
     }
 
@@ -345,19 +375,19 @@ path.connection-hitbox {
 .node:hover .resize {
     opacity: 1;
 
-    &::after {
+    /* &::after {
         opacity: 0.125;
         transform: scale(1);
-    }
+    } */
 }
-.resize-t { top: -25px; left: 50%; transform: translateX(-50%); width: 100%; }
+/* .resize-t { top: -25px; left: 50%; transform: translateX(-50%); width: 100%; }
 .resize-b { bottom: -25px; left: 50%; transform: translateX(-50%); width: 100%; }
 .resize-l { left: -25px; top: 50%; transform: translateY(-50%); height: 100%; }
-.resize-r { right: -25px; top: 50%; transform: translateY(-50%); height: 100%; }
-.resize-rt { top: -25px; right: -25px; }
-.resize-rb { bottom: -25px; right: -25px; }
-.resize-lt { top: -25px; left: -25px; }
-.resize-lb { bottom: -25px; left: -25px; }
+.resize-r { right: -25px; top: 50%; transform: translateY(-50%); height: 100%; } */
+.resize-rt { top: -15px; right: -15px; }
+.resize-rb { bottom: -15px; right: -15px; }
+.resize-lt { top: -15px; left: -15px; }
+.resize-lb { bottom: -15px; left: -15px; }
 
 /* --- UI Controls --- */
 #ui-controls {

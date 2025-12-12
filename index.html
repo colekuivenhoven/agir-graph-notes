@@ -152,10 +152,6 @@
             <div class="port port-b" data-p="b"></div>
             <div class="port port-l" data-p="l"></div>
 
-            <div class="resize resize-t" data-r="t"></div>
-            <div class="resize resize-r" data-r="r"></div>
-            <div class="resize resize-b" data-r="b"></div>
-            <div class="resize resize-l" data-r="l"></div>
             <div class="resize resize-rt" data-r="rt"></div>
             <div class="resize resize-rb" data-r="rb"></div>
             <div class="resize resize-lt" data-r="lt"></div>
@@ -175,11 +171,6 @@
             state.nodes.find(n => n.id === node.id).desc = e.target.value;
             saveData();
         });
-        
-        // Stop drag propagation on inputs
-        // [titleInput, descInput].forEach(i => {
-        //     i.addEventListener('pointerdown', e => e.stopPropagation());
-        // });
 
         // Delete Node
         el.querySelector('.btn-delete').addEventListener('click', () => deleteNode(node.id));
@@ -440,19 +431,7 @@
         // 1. Check Resizing
         if(state.isResizingNode) return;
 
-        // 2. Check Node Header Drag
-        // const header = e.target.closest('.node-header');
-        // if(header) {
-        //     const nodeEl = header.closest('.node');
-        //     const node = state.nodes.find(n => n.id === nodeEl.id);
-        //     nodeEl.classList.add('is-dragging');
-        //     state.isDraggingNode = node;
-        //     const wp = screenToWorld(e.clientX, e.clientY);
-        //     state.dragOffset = { x: wp.x - node.x, y: wp.y - node.y };
-        //     // Deselect connection
-        //     if(state.selectedConnId) { state.selectedConnId = null; renderConnections(); }
-        //     return;
-        // }
+        // 2. Check Node Drag
         const nodeEl = e.target.closest('.node');
         if(nodeEl) {
             const node = state.nodes.find(n => n.id === nodeEl.id);
@@ -627,7 +606,7 @@
     /** UI CONTROLS */
     document.getElementById('add-node').onclick = () => {
         const wp = screenToWorld(viewport.clientWidth/2, viewport.clientHeight/2);
-        addNodeData(wp.x - 75, wp.y - 50, 150, 100, "New Node", "");
+        addNodeData(wp.x - 75, wp.y - 50, 200, 100, "New Node", "");
     };
 
     document.getElementById('reset-view').onclick = () => {
