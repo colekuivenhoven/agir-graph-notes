@@ -34,6 +34,8 @@
     <pre id="state-output"></pre>
 </div>
 
+<div id="modal-layer"></div>
+
 <script>
     /** STATE & CONFIG */
     const state = {
@@ -107,6 +109,32 @@
         localStorage.setItem('node-graph-v2', JSON.stringify(data));
     }
 
+    /** MODAL LOGIC */
+    const open_modal = ({title, contentHtml, footerHtml}) => {
+        const modalLayer = document.getElementById('modal-layer');
+        modalLayer.innerHTML = `
+            <div class="modal-backdrop"></div>
+            <div class="modal-content">
+                <span class="modal-title">${title}</span>
+                ${contentHtml}
+                <button class="btn-close-modal">×</button>
+                <div class="modal-footer">
+                    ${footerHtml || ''}
+                </div>
+            </div>
+        `;
+        modalLayer.style.display = 'block';
+
+        modalLayer.querySelector('.btn-close-modal').onclick = close_modal;
+        modalLayer.querySelector('.modal-backdrop').onclick = close_modal;
+    };
+
+    const close_modal = () => {
+        const modalLayer = document.getElementById('modal-layer');
+        modalLayer.style.display = 'none';
+        modalLayer.innerHTML = '';
+    };
+    
     /** DOM HELPERS */
     function generateId() { return Math.random().toString(36).substr(2, 9); }
     
@@ -363,7 +391,17 @@
                 btn.onpointerdown = (e) => e.stopPropagation(); 
                 btn.onclick = (e) => {
                     e.stopPropagation();
-                    deleteConnection(conn.id);
+                    //deleteConnection(conn.id);
+                    open_modal({
+                        title: 'Delete Connection',
+                        contentHtml: `
+                            <p>Are you sure you want to delete this connection?</p>
+                        `,
+                        footerHtml: `
+                            <button class="btn-cancel-delete">Cancel</button>
+                            <button class="btn-confirm-delete">Delete</button>
+                        `
+                    });
                 };
                 
                 toolsLayer.appendChild(btn);
