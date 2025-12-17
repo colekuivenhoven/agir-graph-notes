@@ -217,37 +217,33 @@
         const targetNodeEl = document.getElementById(targetNode.id);
         targetNodeEl.classList.add('processing'); // Highlight node during processing
 
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Delay for demo purposes
+        await new Promise(resolve => setTimeout(resolve, 500)); // Delay for demo purposes
         console.log(`Processing node '${targetNode.title}' with input:`, inputData);
 
         // Set the input data description
         const inputDescEl = targetNodeEl.querySelector('.node-desc#input-value');
         inputDescEl.value = formatDesc(JSON.stringify(inputData));
 
-        const operations = targetNode.desc?.trim()?.split(';').map(op => op?.trim())?.filter(op => op) || [];
+        const operations = targetNode.desc?.trim()?.split(';').map(op => op?.trim()) || [];
         if(operations.length > 0) {
             let outputData = inputData;
             operations.forEach(operation => {
+                let funcBody = operation + `; return inputData;`;
                 Object.keys(inputData).forEach(key => {
-                    const value = inputData[key];
-                    const funcBody = "return " + operation.replaceAll(/\$all/g, key)?.trim();
-
-                    // If the function body doesn't contain the key, skip
-                    const keyRegex = new RegExp(`\\b${key}\\b`);
-                    if (!keyRegex.test(funcBody)) return;
-
-                    const func = new Function(key, funcBody);
-                    
-                    try {
-                        let res = func(value);
-                        console.log(`--> Output for key '${key}':`, res);
-                        outputData[key] = res;
-                        targetNodeEl.classList.remove('processing');
-                    } catch (err) {
-                        outputData = 'Error in operation';
-                        targetNodeEl.classList.remove('processing');
-                    }
+                    funcBody = funcBody
+                        //.replaceAll(/\$all/g, 'inputData')?.trim()
+                        .replaceAll(key, `inputData['${key}']`);
                 });
+                const func = new Function('inputData', funcBody);
+                try {
+                    let res = func(outputData);
+                    console.log(`--> Output:`, res);
+                    outputData = res;
+                    targetNodeEl.classList.remove('processing');
+                } catch (err) {
+                    outputData = 'Error in operation';
+                    targetNodeEl.classList.remove('processing');
+                }
             });
             
             if (outputData !== undefined) {
