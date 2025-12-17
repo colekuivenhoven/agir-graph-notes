@@ -197,18 +197,84 @@
         connectionsLayer.style.overflow = "visible";
     }
 
+    const promise_chain = (funcs) => {
+        return funcs.reduce((promise, func) => {
+            return promise.then(result => func().then(Array.prototype.concat.bind(result)));
+        }, Promise.resolve([]));
+    };
+
     /** NODE LOGIC */
-    function addNodeData(x, y, w, h, title, desc) {
-        const node = { id: generateId(), x, y, w, h, title, desc };
+    function addNodeData(x, y, w, h, title, desc, type = 'default') {
+        const node = { id: generateId(), x, y, w, h, title, desc, type };
         state.nodes.push(node);
         renderNode(node);
         saveData();
     }
 
+    // Process connected default nodes
+    const process_default_node = async ({targetNode, inputData}) => {
+        const connectedOutputNodes = state.connections.filter(c => c.from === targetNode.id);
+        const targetNodeEl = document.getElementById(targetNode.id);
+        targetNodeEl.classList.add('processing'); // Highlight node during processing
+
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Delay for demo purposes
+        console.log(`Processing node '${targetNode.title}' with input:`, inputData);
+
+        // Set the input data description
+        const inputDescEl = targetNodeEl.querySelector('.node-desc#input-value');
+        inputDescEl.value = formatDesc(JSON.stringify(inputData));
+
+        const operations = targetNode.desc?.trim()?.split(';').map(op => op?.trim())?.filter(op => op) || [];
+        if(operations.length > 0) {
+            let outputData = inputData;
+            operations.forEach(operation => {
+                Object.keys(inputData).forEach(key => {
+                    const value = inputData[key];
+                    const funcBody = "return " + operation.replaceAll(/\$all/g, key)?.trim();
+
+                    // If the function body doesn't contain the key, skip
+                    const keyRegex = new RegExp(`\\b${key}\\b`);
+                    if (!keyRegex.test(funcBody)) return;
+
+                    const func = new Function(key, funcBody);
+                    
+                    try {
+                        let res = func(value);
+                        console.log(`--> Output for key '${key}':`, res);
+                        outputData[key] = res;
+                        targetNodeEl.classList.remove('processing');
+                    } catch (err) {
+                        outputData = 'Error in operation';
+                        targetNodeEl.classList.remove('processing');
+                    }
+                });
+            });
+            
+            if (outputData !== undefined) {
+                await promise_chain(connectedOutputNodes.map(conn => async () => {
+                    const outputNode = state.nodes.find(n => n.id === conn.to);
+
+                    // Pass output to connected output nodes
+                    if(outputNode && outputNode.type === 'output') {
+                        outputNode.desc = formatDesc(JSON.stringify(outputData), true);
+                        const outputNodeEl = document.getElementById(outputNode.id);
+                        const outputDescInput = outputNodeEl.querySelector('.node-desc');
+                        outputDescInput.value = outputNode.desc;
+                    }
+                    // Pass output to connected default nodes
+                    else if(outputNode && outputNode.type === 'default') {
+                        await process_default_node({targetNode: outputNode, inputData: outputData});
+                    }
+                }));
+            }
+        }
+    };
+
     function renderNode(node) {
         const el = document.createElement('div');
         el.className = 'node';
         el.id = node.id;
+        el.dataset.type = node.type;
         el.style.left = node.x + 'px';
         el.style.top = node.y + 'px';
         el.style.width = node.w + 'px';
@@ -217,21 +283,40 @@
         el.innerHTML = `
             <div class="node-header">
                 <input class="node-title" value="${node.title}">
-                <button class="btn-delete">×</button>
+                <button class="btn-options">⋮</button>
             </div>
             <div class="node-body">
 
+                ${// Default Node Fields
+                node.type === 'default' ? `` : ''}
+
+                ${// Input Node Fields
+                node.type === 'input' ? `
                 <div class="new-node-field">
-                    <input type="text" class="new-node-field-input" id="resource-name" placeholder="Resource Name" />
-                    <input type="number" class="new-node-field-input" id="resource-amount" placeholder="Amount" />
-                    <button class="btn-node-field-apply">Apply</button>
+                    <input type="text" class="new-node-field-input" id="resource-name" placeholder="Name" />
+                    <input type="number" class="new-node-field-input" id="resource-amount" placeholder="Value" />
+                    <button class="btn-node-field-apply">Add</button>
                 </div>
+                ` : ''}
 
-                <div class="divider"></div>
+                ${// Output Node Fields
+                node.type === 'output' ? `
+                <textarea class="node-desc" id="output-value" placeholder="Output" disabled></textarea>
+                ` : ''}
 
-                <span class="node-desc-label">Code:</span>
-                <textarea class="node-desc">${node.desc}</textarea>
-                <button class="btn-node-apply">Apply</button>
+                ${node.type === 'input' ? `<div class="divider"></div>` : ''}
+
+                ${node.type === 'default' ? `
+                    <textarea class="node-desc" id="input-value" placeholder="Incoming data will be shown here." disabled></textarea>
+                    <span class="node-desc-label">Operation <span class="node-desc-label-right">output = </span></span>
+                    <textarea class="node-desc" id="operation-value" placeholder="Example: age * 2; $all + 5;">${node.desc}</textarea>
+                ` : ''}
+
+                ${node.type === 'input' ? `
+                    <span class="node-desc-label">Input Data <span class="node-data-clear">Clear Data</span></span>
+                    <textarea class="node-desc" id="resource-data" disabled placeholder="No data added.">${node.desc}</textarea>
+                    <button class="btn-node-run">Run</button>
+                ` : ''}
             </div>
             <div class="port port-t" data-p="t"></div>
             <div class="port port-r" data-p="r"></div>
@@ -253,13 +338,86 @@
             state.nodes.find(n => n.id === node.id).title = e.target.value;
             saveData();
         });
-        descInput.addEventListener('input', e => {
+        node.type === 'default' && descInput.addEventListener('input', e => {
             state.nodes.find(n => n.id === node.id).desc = e.target.value;
             saveData();
         });
 
-        // Delete Node
-        el.querySelector('.btn-delete').addEventListener('click', () => deleteNode(node.id));
+        // Add onclick for Clear Data in input nodes
+        node.type === 'input' && (el.querySelector('.node-data-clear').onclick = () => {
+            const nodeRef = state.nodes.find(n => n.id === node.id);
+            nodeRef.desc = '';
+            descInput.value = '';
+            saveData();
+        });
+
+        // Add onclick for the 'Add' button in input nodes to add resource data, which will be reflected in the desc textarea
+        node.type === 'input' && (el.querySelector('.btn-node-field-apply').onclick = () => {
+            const nameInput = el.querySelector('#resource-name');
+            const amountInput = el.querySelector('#resource-amount');
+            const name = nameInput.value.trim();
+            const amount = parseFloat(amountInput.value);
+            if(name && !isNaN(amount)) {
+                // Format the resource data as a JSON-like string
+                const nodeRef = state.nodes.find(n => n.id === node.id);
+                const newResourceData = JSON.stringify({ [name]: amount });
+                const currentDesc = nodeRef.desc.trim();
+                nodeRef.desc += currentDesc ? `,${newResourceData}` : `${newResourceData}`;
+                nodeRef.desc = formatDesc(nodeRef.desc);
+
+                descInput.value = nodeRef.desc;
+                nameInput.value = '';
+                amountInput.value = '';
+                saveData();
+            }
+        });
+
+        // Add onclick for the 'Run' button in input nodes to simulate processing the resource data
+        node.type === 'input' && (el.querySelector('.btn-node-run').onclick = async () => {
+            const nodeRef = state.nodes.find(n => n.id === node.id);
+            const incomingDataStr = nodeRef.desc.trim();
+            if(!incomingDataStr) return;
+
+            let incomingData;
+            try { incomingData = JSON.parse(`{${incomingDataStr}}`) } 
+            catch (err) { return alert('Invalid resource data format.') }
+
+            // Find connected default nodes
+            const connectedConns = state.connections.filter(c => c.from === node.id);
+            // await connectedConns.forEach(async conn => {
+            //     const targetNode = state.nodes.find(n => n.id === conn.to);
+            //     if(targetNode && targetNode.type === 'default') {
+            //         await process_default_node({targetNode, inputData: JSON.parse(JSON.stringify(incomingData))}); // deep copy
+            //     }
+            // });
+            await promise_chain(connectedConns.map(conn => async () => {
+                const targetNode = state.nodes.find(n => n.id === conn.to);
+                if(targetNode && targetNode.type === 'default') {
+                    await process_default_node({targetNode, inputData: JSON.parse(JSON.stringify(incomingData))}); // deep copy
+                }
+            }));
+        });
+        
+        // Options Button
+        el.querySelector('.btn-options').onclick = (e) => {
+            open_options_modal({
+                element: e.target,
+                title: 'Node Options',
+                option_btns: [
+                    {
+                        id: 'focus-node',
+                        label: 'Focus Node',
+                        onclick: () => focusNode(node.id)
+                    },
+                    { 
+                        id: 'delete-node', 
+                        classes: 'red',
+                        label: 'Delete Node', 
+                        onclick: () => deleteNode(node.id) 
+                    }
+                ]
+            });
+        };
 
         // Start Resizing
         el.querySelectorAll('.resize').forEach(r => {
@@ -279,8 +437,63 @@
             p.addEventListener('pointerdown', (e) => startConnection(e, node.id));
         });
 
+        // If clicking any input or textarea, stop propagation to prevent dragging
+        el.querySelectorAll('input, textarea').forEach(inputEl => {
+            if (inputEl.disabled) return;
+            inputEl.addEventListener('pointerdown', (e) => e.stopPropagation());
+            inputEl.oninput = () => {
+                const nodeRef = state.nodes.find(n => n.id === node.id);
+                if(inputEl.id === 'operation-value') nodeRef.desc = inputEl.value;
+                else if(inputEl.id === 'resource-data') nodeRef.desc = inputEl.value;
+                // else if(inputEl.id === 'output-value') nodeRef.desc = inputEl.value;
+                
+                saveData();
+            };
+        });
+        
         nodesLayer.appendChild(el);
     }
+
+    const formatDesc = (desc, format_like_json = false) => {
+        let formatted = desc;
+        if (format_like_json) {
+            try {
+                const json = JSON.parse(formatted);
+                formatted = JSON.stringify(json, null, 2);
+            } catch (e) {
+                console.warn('Failed to format as JSON:', e);
+            }
+        }
+        else {
+            formatted = formatted.replace(/,/g, ', '); // Add spaces after commas for readability
+            formatted = formatted.replace(/:/g, ': '); // Add spaces after colons for readability
+            formatted = formatted.replace(/{/g, '').replace(/}/g, ''); // Remove braces for cleaner display
+            formatted = formatted.replace(/\s+/g, ' ').trim(); // remove any extra spaces
+        }
+
+        return formatted;
+    };
+
+    const focusNode = (id) => {
+        const node = state.nodes.find(n => n.id === id);
+        if(node) {
+            const vpRect = viewport.getBoundingClientRect();
+
+            // Zoom
+            const scaleX = vpRect.width / (node.w * 2);
+            const scaleY = vpRect.height / (node.h * 2);
+            state.scale = Math.min(scaleX, scaleY);
+
+            // Pan
+            const targetX = -node.x * state.scale + vpRect.width / 2 - (node.w * state.scale) / 2;
+            const targetY = -node.y * state.scale + vpRect.height / 2 - (node.h * state.scale) / 2;
+            state.pan.x = targetX;
+            state.pan.y = targetY;
+            
+            applyTransform();
+            saveData();
+        }
+    };
 
     function deleteNode(id) {
         state.nodes = state.nodes.filter(n => n.id !== id);
@@ -740,9 +953,32 @@
     }, { passive: false });
 
     /** UI CONTROLS */
-    document.getElementById('add-node').onclick = () => {
+    document.getElementById('add-node').onclick = (e) => {
         const wp = screenToWorld(viewport.clientWidth/2, viewport.clientHeight/2);
-        addNodeData(wp.x - 75, wp.y - 50, 300, 200, "New Node", "");
+        open_options_modal({
+            element: e.target,
+            title: 'Add Node',
+            option_btns: [
+                {
+                    id: 'add-input-node', 
+                    classes: 'blue',
+                    label: 'Add Input Node', 
+                    onclick: () => addNodeData(wp.x - 75, wp.y - 50, 300, 200, "New Input Node", "", 'input') 
+                },
+                {
+                    id: 'add-output-node', 
+                    classes: 'blue',
+                    label: 'Add Output Node', 
+                    onclick: () => addNodeData(wp.x - 75, wp.y - 50, 300, 200, "New Output Node", "", 'output') 
+                },
+                { 
+                    id: 'add-default-node', 
+                    classes: 'green',
+                    label: 'Add Default Node', 
+                    onclick: () => addNodeData(wp.x - 75, wp.y - 50, 300, 200, "New Default Node", "", 'default') 
+                }
+            ]
+        });
     };
 
     document.getElementById('reset-view').onclick = () => {
