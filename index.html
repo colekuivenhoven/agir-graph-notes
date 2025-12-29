@@ -23,6 +23,7 @@
     </div> -->
     <div class="row">
         <button class="btn-fab" id="reset-view" title="Reset View">⟲</button>
+        <button class="btn-fab" id="change-theme" title="Change Theme">🎨</button>
         <button class="btn-fab primary" id="add-node" title="Add Node">+</button>
     </div>
 </div>
@@ -45,6 +46,152 @@
         vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs'
       }
     });
+
+    // Monaco Themes
+    const editorThemes = {
+        "dracula-dark": {
+            base: 'vs-dark', // Use standard dark as the base
+            inherit: true,   // Inherit other defaults from vs-dark
+            rules: [
+                { token: 'comment', foreground: '6272a4' },
+                { token: 'string', foreground: 'f1fa8c' },
+                { token: 'constant', foreground: 'bd93f9' },
+                { token: 'variable', foreground: 'f8f8f2' },
+                { token: 'variable.parameter', foreground: 'ffb86c', fontStyle: 'italic' },
+                { token: 'keyword', foreground: 'ff79c6' },
+                { token: 'storage', foreground: 'ff79c6' },
+                { token: 'operator', foreground: 'ff79c6' },
+                { token: 'type', foreground: '8be9fd' },
+                { token: 'class', foreground: '8be9fd' },
+                { token: 'function', foreground: '50fa7b' },
+                { token: 'number', foreground: 'bd93f9' },
+                { token: 'tag', foreground: 'ff79c6' },
+                { token: 'attribute.name', foreground: '50fa7b' },
+                { token: 'delimiter', foreground: 'f8f8f2' },
+            ],
+            colors: {
+                // Editor UI Colors
+                'editor.background': '#282a36',
+                'editor.foreground': '#f8f8f2',
+                'editorCursor.foreground': '#f8f8f0',
+                'editor.selectionBackground': '#44475a',
+                'editor.lineHighlightBackground': '#44475a',
+                'editorLineNumber.foreground': '#6272a4',
+                'editorIndentGuide.background': '#424450',
+                'editorIndentGuide.activeBackground': '#8be9fd',
+                
+                // Suggestion Widget (IntelliSense)
+                'editorSuggestWidget.background': '#21222c',
+                'editorSuggestWidget.border': '#6272a4',
+                'editorSuggestWidget.selectedBackground': '#44475a',
+            }
+        },
+        "cobalt-dark": {
+            base: 'vs-dark',
+            inherit: true,
+            rules: [
+                { token: 'comment', foreground: '007be6', fontStyle: 'italic' }, // Light Blue for comments
+                { token: 'keyword', foreground: 'ff9d00', fontStyle: 'bold' }, // Bright Orange for keywords
+                { token: 'operator', foreground: 'ff9d00' },
+                { token: 'identifier', foreground: 'e1efff' },
+                { token: 'string', foreground: '3ad900' }, // Vibrant Green for strings
+                { token: 'number', foreground: 'ff628c' }, // Pink/Red for numbers
+                { token: 'type', foreground: '80ffbb' },   // Mint for types
+                { token: 'class', foreground: '80ffbb' },
+                { token: 'function', foreground: 'ffdd00' }, // Yellow for functions
+                { token: 'variable', foreground: 'e1efff' },
+                { token: 'variable.parameter', foreground: 'fb94ff' },
+                { token: 'tag', foreground: '9effff' }, // Cyan for HTML tags
+                { token: 'attribute.name', foreground: 'ff9d00' },
+                { token: 'delimiter', foreground: 'e1efff' }
+            ],
+            colors: {
+                // Editor UI - The core "Cobalt" look
+                'editor.background': '#193549', // The classic dark navy blue
+                'editor.foreground': '#e1efff', // White/Light Blue text
+                
+                // UI Accents
+                'editorCursor.foreground': '#ffc600', // Yellow cursor
+                'editor.selectionBackground': '#0050a4', // Darker blue selection
+                'editor.lineHighlightBackground': '#1f4662', // Slightly lighter blue for current line
+                'editorLineNumber.foreground': '#0088ff', // Bright blue line numbers
+                'editorIndentGuide.background': '#1f4662',
+                'editorIndentGuide.activeBackground': '#ffc600',
+                
+                // Widget/Popup colors
+                'editorSuggestWidget.background': '#122738',
+                'editorSuggestWidget.border': '#0088ff',
+                'editorSuggestWidget.selectedBackground': '#1f4662',
+            }
+        },
+        "creamy-light": {
+            base: 'vs', // Start with standard light base
+            inherit: true,
+            rules: [
+                { token: 'comment', foreground: '93a1a1', fontStyle: 'italic' },
+                { token: 'keyword', foreground: '859900', fontStyle: 'bold' }, // Olive Green
+                { token: 'identifier', foreground: '586e75' }, // Dark Gray
+                { token: 'string', foreground: '2aa198' }, // Cyan/Teal
+                { token: 'number', foreground: 'd33682' }, // Magenta
+                { token: 'type', foreground: 'b58900' }, // Yellow/Orange
+                { token: 'class', foreground: 'b58900' },
+                { token: 'function', foreground: '268bd2' }, // Blue
+                { token: 'variable', foreground: '268bd2' },
+                { token: 'operator', foreground: '859900' },
+                { token: 'delimiter', foreground: '657b83' }
+            ],
+            colors: {
+                // Core UI - Warm, creamy background
+                'editor.background': '#fdf6e3', 
+                'editor.foreground': '#586e75',
+                
+                // UI Accents
+                'editorCursor.foreground': '#657b83',
+                'editor.selectionBackground': '#eee8d5', // Slightly darker beige for selection
+                'editor.lineHighlightBackground': '#eee8d5',
+                'editorLineNumber.foreground': '#93a1a1',
+                'editorIndentGuide.background': '#eee8d5',
+                
+                // Widget/Popup colors
+                'editorSuggestWidget.background': '#fdf6e3',
+                'editorSuggestWidget.border': '#93a1a1',
+                'editorSuggestWidget.selectedBackground': '#eee8d5',
+            }
+        },
+        "clean-light": {
+            base: 'vs', // Use standard light base
+            inherit: true,
+            rules: [
+                { token: 'comment', foreground: 'a0a1a7', fontStyle: 'italic' }, // Cool gray
+                { token: 'keyword', foreground: '6c3082', fontStyle: 'bold' },   // Deep Violet
+                { token: 'operator', foreground: '6c3082' },
+                { token: 'identifier', foreground: '383a42' }, // Soft Black (Slate)
+                { token: 'string', foreground: '0184bc' },     // Muted Cyan
+                { token: 'number', foreground: 'aa0982' },     // Magenta/Pink
+                { token: 'type', foreground: '4078f2' },       // Soft Blue
+                { token: 'class', foreground: '4078f2' },
+                { token: 'function', foreground: '4078f2' },
+                { token: 'variable', foreground: 'c18401' },   // Muted Gold
+                { token: 'delimiter', foreground: '383a42' }
+            ],
+            colors: {
+                // Editor UI - Pure White
+                'editor.background': '#ffffff', 
+                'editor.foreground': '#383a42', // Not pitch black, easier on eyes
+                
+                // UI Accents
+                'editorCursor.foreground': '#6c3082', // Violet cursor to match keywords
+                'editor.selectionBackground': '#e5e5e6', 
+                'editor.lineHighlightBackground': '#fafafa', // Very subtle active line
+                'editorLineNumber.foreground': '#9d9d9f',
+                
+                // Widget/Popup colors
+                'editorSuggestWidget.background': '#f3f3f3',
+                'editorSuggestWidget.border': '#d4d4d4',
+                'editorSuggestWidget.selectedBackground': '#ffffff',
+            }
+        }
+    }
 
     /** STATE & CONFIG */
     const state = {
@@ -71,7 +218,10 @@
         connStartNode: null,
         connStartPort: null,
         tempPath: null,
-        selectedConnId: null
+        selectedConnId: null,
+
+        // Theme
+        editorTheme: 'cobalt-dark'
     };
 
     // DOM Elements
@@ -91,7 +241,8 @@
             state.pan = parsed.pan || { x: 0, y: 0 };
             state.scale = parsed.scale || 1;
             state.snapScale = parsed.snapScale || 20;
-            console.log('connections', state.connections);
+            state.editorTheme = parsed.editorTheme || 'cobalt-dark';
+            //console.log('connections', state.connections);
         } else {
             // Seeds
             // addNodeData(100, 100, 200, 150, "Welcome", "Drag me, resize me (bottom-right), or connect me.");
@@ -106,17 +257,20 @@
         document.getElementById('state-output').textContent = JSON.stringify({
             ...state, 
             nodes: `[${state.nodes.length} nodes]`,
-            connections: `[${state.connections.length} connections]`
+            connections: `[${state.connections.length} connections]`,
+            isDraggingNode: state.isDraggingNode?.id || null,
+            isResizingNode: state.isResizingNode?.id || null
         }, null, 2);
     };
 
     function saveData() {
         const data = {
-            nodes: state.nodes,
+            nodes: state.nodes.map(({ editor, ...rest }) => rest),
             connections: state.connections,
             pan: state.pan,
             scale: state.scale,
-            snapScale: state.snapScale
+            snapScale: state.snapScale,
+            editorTheme: state.editorTheme
         };
         localStorage.setItem('node-graph-v2', JSON.stringify(data));
     }
@@ -192,12 +346,25 @@
     };
     
     /** DOM HELPERS */
-    const create_monaco_editor = (container, options) => {
-        let editorInstance = null;
+    const create_monaco_editor = ({node, container, options}) => {
+        if (node.hasOwnProperty('editor')) return; // already created
+
+        const defaults = {
+            language: 'javascript',
+            theme: state.editorTheme,
+            automaticLayout: true,
+            fontSize: 12,
+            minimap: { enabled: false },
+            scrollbar: { vertical: 'hidden', horizontal: 'hidden' },
+            lineNumbersMinChars: 2
+        };
+        options = Object.assign({}, defaults, options);
+
+        // Create the editor with the selected theme
         require(['vs/editor/editor.main'], function() {
-            editorInstance = monaco.editor.create(container, options);
+            Object.keys(editorThemes).forEach(themeName => monaco.editor.defineTheme(themeName, editorThemes[themeName])); // Import themes
+            node.editor = monaco.editor.create(container, options);
         });
-        return editorInstance;
     };
     
     function generateId() { return Math.random().toString(36).substr(2, 9); }
@@ -234,7 +401,13 @@
         const targetNodeEl = document.getElementById(targetNode.id);
         targetNodeEl.classList.add('processing'); // Highlight node during processing
 
-        await new Promise(resolve => setTimeout(resolve, 500)); // Delay for demo purposes
+        // add processing class to connections as well
+        connectedOutputNodes.forEach(conn => {
+            const connectionEl = document.querySelector(`[data-connection-id="${conn.id}"]`);
+            if (connectionEl) connectionEl.classList.add('processing');
+        });
+
+        await new Promise(resolve => setTimeout(resolve, 500)); // Delay for visualization purposes
         console.log(`Processing node '${targetNode.title}' with input:`, inputData);
 
         // Set the input data description
@@ -257,9 +430,21 @@
                     console.log(`--> Output:`, res);
                     outputData = res;
                     targetNodeEl.classList.remove('processing');
+
+                    // Remove processing class from connections as well
+                    connectedOutputNodes.forEach(conn => {
+                        const connectionEl = document.querySelector(`[data-connection-id="${conn.id}"]`);
+                        if (connectionEl) connectionEl.classList.remove('processing');
+                    });
                 } catch (err) {
                     outputData = 'Error in operation';
                     targetNodeEl.classList.remove('processing');
+
+                    // Remove processing class from connections as well
+                    connectedOutputNodes.forEach(conn => {
+                        const connectionEl = document.querySelector(`[data-connection-id="${conn.id}"]`);
+                        if (connectionEl) connectionEl.classList.remove('processing');
+                    });
                 }
             });
             
@@ -300,9 +485,6 @@
             </div>
             <div class="node-body">
 
-                ${// Default Node Fields
-                node.type === 'default' ? `` : ''}
-
                 ${// Input Node Fields
                 node.type === 'input' ? `
                 <div class="new-node-field">
@@ -319,18 +501,21 @@
 
                 ${node.type === 'input' ? `<div class="divider"></div>` : ''}
 
-                ${node.type === 'default' ? `
+                ${// Default Node Fields
+                node.type === 'default' ? `
                     <textarea class="node-desc" id="input-value" placeholder="Incoming data will be shown here." disabled></textarea>
                     <span class="node-desc-label">Operation <span class="node-desc-label-right">output = </span></span>
-                    <textarea class="node-desc" id="operation-value" placeholder="Example: age * 2; $all + 5;">${node.desc}</textarea>
+                    <div class="editor-wrapper"><div class="monaco-editor-container" id="default-node-editor"></div></div>
                 ` : ''}
 
                 ${node.type === 'input' ? `
                     <span class="node-desc-label">Input Data <span class="node-data-clear">Clear Data</span></span>
                     <textarea class="node-desc" id="resource-data" disabled placeholder="No data added.">${node.desc}</textarea>
+                    <div class="resource-badges"></div>
                     <button class="btn-node-run">Run</button>
                 ` : ''}
             </div>
+            
             <div class="port port-t" data-p="t"></div>
             <div class="port port-r" data-p="r"></div>
             <div class="port port-b" data-p="b"></div>
@@ -345,45 +530,69 @@
         // Inputs
         const titleInput = el.querySelector('.node-title');
         const descInput = el.querySelector('.node-desc');
+        const editorEl = el?.querySelector('.monaco-editor-container') || null;
         
         // Update listeners
         titleInput.addEventListener('input', e => {
             state.nodes.find(n => n.id === node.id).title = e.target.value;
             saveData();
         });
-        node.type === 'default' && descInput.addEventListener('input', e => {
-            state.nodes.find(n => n.id === node.id).desc = e.target.value;
-            saveData();
-        });
 
-        // Add onclick for Clear Data in input nodes
-        node.type === 'input' && (el.querySelector('.node-data-clear').onclick = () => {
-            const nodeRef = state.nodes.find(n => n.id === node.id);
-            nodeRef.desc = '';
-            descInput.value = '';
-            saveData();
-        });
+        // Handle default nodes
+        if (node.type === 'default') { 
 
-        // Add onclick for the 'Add' button in input nodes to add resource data, which will be reflected in the desc textarea
-        node.type === 'input' && (el.querySelector('.btn-node-field-apply').onclick = () => {
-            const nameInput = el.querySelector('#resource-name');
-            const amountInput = el.querySelector('#resource-amount');
-            const name = nameInput.value.trim();
-            const amount = parseFloat(amountInput.value);
-            if(name && !isNaN(amount)) {
-                // Format the resource data as a JSON-like string
+            // Handle Monaco Editor
+            create_monaco_editor({ node, container: editorEl, options: { value: node.desc } });
+            setTimeout(() => {
+                node.editor.onDidChangeModelContent(() => {
+                    state.nodes.find(n => n.id === node.id).desc = node.editor.getValue();
+                    saveData();
+                });
+            }, 100);
+        }
+
+        
+        // Input fields
+        if (node.type === 'input') {
+
+            // Add onclick for Clear Data in input nodes
+            el.querySelector('.node-data-clear').onclick = () => {
                 const nodeRef = state.nodes.find(n => n.id === node.id);
-                const newResourceData = JSON.stringify({ [name]: amount });
-                const currentDesc = nodeRef.desc.trim();
-                nodeRef.desc += currentDesc ? `,${newResourceData}` : `${newResourceData}`;
-                nodeRef.desc = formatDesc(nodeRef.desc);
-
-                descInput.value = nodeRef.desc;
-                nameInput.value = '';
-                amountInput.value = '';
+                nodeRef.desc = '';
+                descInput.value = '';
                 saveData();
+            };
+
+            // Add onclick for the 'Add' button in input nodes to add resource data, which will be reflected in the desc textarea
+            el.querySelector('.btn-node-field-apply').onclick = () => {
+                const nameInput = el.querySelector('#resource-name');
+                const amountInput = el.querySelector('#resource-amount');
+                const name = nameInput.value.trim();
+                const amount = parseFloat(amountInput.value);
+                if(name && !isNaN(amount)) {
+                    // Format the resource data as a JSON-like string
+                    const nodeRef = state.nodes.find(n => n.id === node.id);
+                    const newResourceData = JSON.stringify({ [name]: amount });
+                    const currentDesc = nodeRef.desc.trim();
+                    nodeRef.desc += currentDesc ? `,${newResourceData}` : `${newResourceData}`;
+                    nodeRef.desc = formatDesc(nodeRef.desc);
+
+                    descInput.value = nodeRef.desc;
+                    nameInput.value = '';
+                    amountInput.value = '';
+                    saveData();
+                }
             }
-        });
+
+            // Input fields
+            const descInput = el.querySelector('.node-desc#resource-data')?.value;
+            const descObject = JSON.parse(`{${descInput}}`);
+            Object.entries(descObject).forEach(([key, value]) => {
+                const badge = `<div class="resource-badge">${key} = ${value} <div class="resource-badge-remove" data-key="${key}">×</div></div>`;
+                el.querySelector('.resource-badges').innerHTML += badge;
+            });
+
+        }
 
         // Add onclick for the 'Run' button in input nodes to simulate processing the resource data
         node.type === 'input' && (el.querySelector('.btn-node-run').onclick = async () => {
@@ -451,7 +660,7 @@
         });
 
         // If clicking any input or textarea, stop propagation to prevent dragging
-        el.querySelectorAll('input, textarea').forEach(inputEl => {
+        el.querySelectorAll('input, textarea, .monaco-editor-container').forEach(inputEl => {
             if (inputEl.disabled) return;
             inputEl.addEventListener('pointerdown', (e) => e.stopPropagation());
             inputEl.oninput = () => {
@@ -515,6 +724,12 @@
         renderConnections();
         saveData();
     }
+
+    const updateTheme = (newTheme) => {
+        state.editorTheme = newTheme;
+        monaco.editor.setTheme(newTheme);
+        saveData();
+    };
 
     /** CONNECTION LOGIC */
     function startConnection(e, nodeId) {
@@ -994,11 +1209,30 @@
         });
     };
 
-    document.getElementById('reset-view').onclick = () => {
+    document.getElementById('reset-view').onclick = (e) => {
         state.pan = { x: 0, y: 0 };
         state.scale = 1;
         applyTransform();
         saveData();
+    };
+
+    document.getElementById('change-theme').onclick = (e) => {
+        open_options_modal({
+            element: e.target,
+            title: 'Change Editor Theme',
+            option_btns: Object.keys(editorThemes).map(themeId => {
+                const userFriendlyLabel = themeId
+                    ?.replace(/-/g, ' (') // Replace dashes with spaces
+                    ?.replace(/\b\w/g, char => char.toUpperCase()) // Capitalize first letter of each word
+                    +")" // Ensure closing parenthesis is at the end
+                return {
+                    id: `theme-${themeId}`,
+                    classes: state.editorTheme === themeId ? 'disabled' : 'blue',
+                    label: userFriendlyLabel,
+                    onclick: () => updateTheme(themeId)
+                };
+            })
+        });
     };
 
     // Keyboard delete for selected connection
