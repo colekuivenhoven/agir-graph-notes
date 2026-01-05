@@ -194,6 +194,14 @@ body, html {
                     }
                 }
 
+                &.orange {
+                    background-color: rgba(255, 165, 0, 0.1);
+
+                    &::after {
+                        background-color: rgba(255, 165, 0, 0.85);
+                    }
+                }
+
                 &.blue {
                     background-color: rgba(59, 130, 246, 0.1);
 
@@ -347,6 +355,7 @@ path.connection-hitbox {
     opacity: 1;
     outline: 2px solid rgba(0,0,0,0.0);
     outline-offset: 0px;
+    transition: outline 0.1s ease-in-out, outline-width 0.1s ease-in-out;
 
     &:hover {
         outline: 2px solid rgba(0,0,0,0.075);
@@ -365,7 +374,9 @@ path.connection-hitbox {
     }
 
     &.processing {
-        animation: outlinePulse 1s infinite;
+        /*animation: outlinePulse 0.25s infinite;*/
+        outline-color: rgba(65, 173, 105, 0.3);
+        outline-width: 5px;
     }
 
     .node-header {
@@ -412,11 +423,22 @@ path.connection-hitbox {
         }
     }
 
+    /* Orange for transfer */
+    &[data-type="transfer"] {
+        .node-header {
+            background: rgba(255, 165, 0, 0.3) !important;
+        }
+    }
+
     /* Gray for output */
     &[data-type="output"] {
         .node-header {
             background: rgba(107, 114, 128, 0.2) !important;
         }
+    }
+
+    &[data-resizable="false"] {
+        .resize { display: none; }
     }
 }
 
@@ -553,8 +575,16 @@ path.connection-hitbox {
 .resource-badges {
     display: flex;
     flex-wrap: wrap;
+    align-items: baseline;
     gap: 4px;
-    margin-bottom: 4px;
+    height: 100%;
+
+    .resource-default-message {
+        font-size: 10px;
+        color: rgba(0, 0, 0, 0.3);
+        font-weight: 500;
+        font-style: italic;
+    }
 
     .resource-badge {
         display: flex;
@@ -563,7 +593,7 @@ path.connection-hitbox {
         padding: 2px 4px 2px 6px;
         /* border: 1px solid var(--node-border); */
         outline: 1px solid rgba(0, 0, 0, 0.1);
-        border-radius: 4px;
+        border-radius: 3px;
         background: rgba(0, 0, 0, 0.05);
         font-size: 10px;
         color: var(--text-main);
@@ -605,6 +635,7 @@ path.connection-hitbox {
     &:disabled {
         background: rgba(0, 0, 0, 0.05);
         border: none;
+        pointer-events: none;
     }
 
     &::placeholder {
@@ -619,11 +650,11 @@ path.connection-hitbox {
         margin-bottom: 4px;
     }
 
-    &#resource-data, &#output-value {
+    &#resource-data, &#output-value, &#transfer-value {
         font-size: 10px;
         padding: 4px 6px;
 
-        &#resource-data {
+        &#resource-data, &#transfer-value, &#output-value {
             display: none;
         }
     }
@@ -886,7 +917,7 @@ path.connection-hitbox {
         outline-width: 5px;
     }
     50% {
-        outline-color: rgba(65, 173, 105, 0.5);
+        outline-color: rgba(65, 173, 105, 0.3);
         outline-width: 5px;
     }
     100% {
