@@ -412,6 +412,7 @@ function renderNode(node) {
                 <textarea class="node-desc" id="resource-data" disabled placeholder="No data added.">${node.desc}</textarea>
                 <div class="resource-badges"></div>
                 <button class="btn-node-run">Run</button>
+                <button class="btn-node-stop hidden">Stop</button>
             ` : ''}
         </div>
         
@@ -495,6 +496,10 @@ function renderNode(node) {
 
     // Add onclick for the 'Run' button in input nodes to simulate processing the resource data
     node.type === 'input' && (el.querySelector('.btn-node-run').onclick = async () => {
+        // show the stop button and hide the run button
+        el.querySelector('.btn-node-stop').classList.remove('hidden');
+        el.querySelector('.btn-node-run').classList.add('hidden');
+
         const nodeRef = state.nodes.find(n => n.id === node.id);
         const incomingDataStr = nodeRef.desc.trim();
         if(!incomingDataStr) return;
@@ -512,7 +517,16 @@ function renderNode(node) {
             }
         }));
     });
-    
+
+    // Stop Processing
+    node.type === 'input' && (el.querySelector('.btn-node-stop').onclick = async () => {
+        // show the run button and hide the stop button
+        el.querySelector('.btn-node-run').classList.remove('hidden');
+        el.querySelector('.btn-node-stop').classList.add('hidden');
+
+        //TODO: Recursively clear processing states
+    });
+
     // Options Button
     el.querySelector('.btn-options').onclick = (e) => {
         open_options_modal({
